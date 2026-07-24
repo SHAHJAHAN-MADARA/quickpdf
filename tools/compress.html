@@ -1,0 +1,154 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compress PDF — Reduce File Size Free | QuickPDF</title>
+<meta name="description" content="Compress and reduce PDF file size online for free. Runs in your browser — no upload, no signup.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta name="keywords" content="compress pdf, reduce pdf size, pdf compressor, shrink pdf">
+<link rel="canonical" href="https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/compress.html">
+<meta name="theme-color" content="#0b0d12">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PDF Compressor","url":"https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/compress.html","applicationCategory":"UtilitiesApplication","offers":{"@type":"Offer","price":"0"}}</script>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="logo" href="../"><span class="logo-mark">Q</span><span>QuickPDF</span></a>
+    <nav class="nav-links">
+      <a href="../tools/merge.html">Merge</a><a href="../tools/split.html">Split</a><a href="../tools/compress.html">Compress</a>
+      <a href="../tools/pdf-to-jpg.html">PDF to JPG</a><a href="../tools/jpg-to-pdf.html">JPG to PDF</a><a href="../tools/rotate.html">Rotate</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main class="tool-page">
+  <div class="container">
+    <div class="tool-head">
+      <h1>Compress PDF</h1>
+      <p>Reduce PDF file size by re-rendering pages as compressed JPEGs. Best for scanned or image-heavy PDFs.</p>
+    </div>
+
+    <div class="workspace">
+      <div id="dz" class="dropzone">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v14m-5-5 5 5 5-5M5 21h14"/></svg>
+        <p class="dz-title">Drop a PDF here or click to select</p>
+      </div>
+
+      <div id="opts" class="hide" style="margin-top:20px">
+        <p id="fileInfo" style="color:var(--text-dim);margin:0 0 16px"></p>
+        <label class="field">
+          <span class="lbl">Compression level</span>
+          <select class="input" id="level">
+            <option value="high">Strong (smaller file, lower quality)</option>
+            <option value="med" selected>Balanced (recommended)</option>
+            <option value="low">Light (larger file, higher quality)</option>
+          </select>
+        </label>
+        <div class="actions">
+          <button class="btn btn-outline" id="clearBtn">Choose different file</button>
+          <button class="btn btn-primary grow" id="doBtn">🗜️ Compress & Download</button>
+        </div>
+      </div>
+
+      <div class="progress hide" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="status" id="status"></div>
+      <div id="result" class="hide" style="margin-top:16px;padding:16px;background:var(--bg-elev);border:1px solid var(--border);border-radius:10px;text-align:center"></div>
+    </div>
+
+    <p style="color:var(--text-muted);font-size:13px;max-width:720px;margin:24px auto;text-align:center">Note: This tool reduces size by rasterising each page. Text will become non-selectable. For PDFs that are already text-based and small, results may not shrink significantly.</p>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="container"><div class="footer-bottom"><div>© <span data-year></span> QuickPDF</div><div><a href="../">Home</a></div></div></div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  var file = null;
+  var dz = document.getElementById('dz'), opts = document.getElementById('opts');
+  var info = document.getElementById('fileInfo');
+  var doBtn = document.getElementById('doBtn'), clearBtn = document.getElementById('clearBtn');
+  var levelSel = document.getElementById('level');
+  var progressWrap = document.getElementById('progressWrap'), progressBar = document.getElementById('progressBar');
+  var statusEl = document.getElementById('status'), resultEl = document.getElementById('result');
+
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  QP.dropzone(dz, {
+    accept: '.pdf,application/pdf', multiple: false,
+    onFiles: function (fs) {
+      file = fs[0];
+      info.innerHTML = '<strong>' + file.name + '</strong> · ' + QP.fmtBytes(file.size);
+      dz.classList.add('hide'); opts.classList.remove('hide');
+      resultEl.classList.add('hide');
+    }
+  });
+
+  clearBtn.addEventListener('click', function () {
+    file = null; dz.classList.remove('hide'); opts.classList.add('hide');
+    statusEl.textContent = ''; resultEl.classList.add('hide');
+  });
+
+  var PRESETS = {
+    high: { scale: 1.0, quality: 0.55 },
+    med:  { scale: 1.4, quality: 0.72 },
+    low:  { scale: 1.8, quality: 0.85 }
+  };
+
+  doBtn.addEventListener('click', async function () {
+    if (!file) return;
+    doBtn.disabled = true;
+    progressWrap.classList.remove('hide'); progressBar.style.width = '4%';
+    statusEl.textContent = 'Loading PDF...';
+    try {
+      var origSize = file.size;
+      var buf = await file.arrayBuffer();
+      var srcPdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      var out = await PDFLib.PDFDocument.create();
+      var preset = PRESETS[levelSel.value];
+
+      for (var i = 1; i <= srcPdf.numPages; i++) {
+        statusEl.textContent = 'Compressing page ' + i + ' / ' + srcPdf.numPages;
+        var page = await srcPdf.getPage(i);
+        var vp = page.getViewport({ scale: preset.scale });
+        var canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        var jpgBlob = await new Promise(function (r) { canvas.toBlob(r, 'image/jpeg', preset.quality); });
+        var jpgBuf = await jpgBlob.arrayBuffer();
+        var img = await out.embedJpg(jpgBuf);
+        var pdfPage = out.addPage([vp.width, vp.height]);
+        pdfPage.drawImage(img, { x: 0, y: 0, width: vp.width, height: vp.height });
+        progressBar.style.width = (10 + i / srcPdf.numPages * 85) + '%';
+      }
+
+      statusEl.textContent = 'Saving...';
+      var bytes = await out.save({ useObjectStreams: true });
+      progressBar.style.width = '100%';
+      var newBlob = new Blob([bytes], { type: 'application/pdf' });
+      QP.download(newBlob, file.name.replace(/\.pdf$/i, '') + '-compressed.pdf');
+
+      var saved = origSize - newBlob.size;
+      var pct = ((saved / origSize) * 100).toFixed(1);
+      resultEl.innerHTML = '<strong style="color:' + (saved > 0 ? 'var(--success)' : 'var(--text-dim)') + '">' +
+        (saved > 0 ? '↓ ' + pct + '% smaller' : 'No further compression possible') +
+        '</strong><br><span style="color:var(--text-dim);font-size:14px">' + QP.fmtBytes(origSize) + ' → ' + QP.fmtBytes(newBlob.size) + '</span>';
+      resultEl.classList.remove('hide');
+      statusEl.textContent = ''; QP.toast('Done');
+    } catch (err) {
+      console.error(err); QP.toast('Compress failed', true);
+      statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+      doBtn.disabled = false;
+      setTimeout(function () { progressWrap.classList.add('hide'); progressBar.style.width = '0'; }, 1200);
+    }
+  });
+})();
+</script>

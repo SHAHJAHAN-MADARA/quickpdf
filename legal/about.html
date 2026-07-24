@@ -1,0 +1,32 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About QuickPDF — How Browser-Based PDF Tools Work</title>
+<meta name="description" content="How QuickPDF processes PDFs entirely in your browser using WebAssembly for perfect privacy.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://SHAHJAHAN-MADARA.github.io/quickpdf/legal/about.html">
+<link rel="stylesheet" href="../assets/style.css"><link rel="icon" href="../favicon.svg">
+<header class="site-header"><div class="container nav"><a class="logo" href="../"><span class="logo-mark">Q</span><span>QuickPDF</span></a></div></header>
+<main class="legal-page"><div class="container"><article>
+  <h1>About QuickPDF</h1>
+  <p class="meta">The private, no-upload PDF toolkit</p>
+
+  <h2>Why QuickPDF exists</h2>
+  <p>Most online PDF services require you to upload your documents to a stranger's server. For contracts, tax returns, medical records, or business documents, that's a real privacy problem — and it's slow.</p>
+  <p>QuickPDF flips that: your PDF is opened, edited, and saved entirely inside your web browser. Nothing is uploaded, nothing is stored, nothing is logged.</p>
+
+  <h2>How it works technically</h2>
+  <p>When you open a QuickPDF tool, we send you an HTML page plus a WebAssembly PDF engine (based on the excellent <a href="https://pdf-lib.js.org/" rel="nofollow">pdf-lib</a> and <a href="https://mozilla.github.io/pdf.js/" rel="nofollow">PDF.js</a> projects). When you pick a file, the browser reads it into memory, runs the operation locally, and hands you back a downloadable result. Our server never sees the file bytes.</p>
+
+  <h2>The tradeoffs</h2>
+  <ul>
+    <li>Everything runs on your CPU, so massive PDFs on a slow phone may be sluggish. Desktops handle almost anything.</li>
+    <li>The first load of a tool downloads the engine (~2 MB). Subsequent loads are near-instant thanks to browser caching.</li>
+    <li>All conversion happens without OCR — text in scanned PDFs stays as an image.</li>
+  </ul>
+
+  <h2>Free forever</h2>
+  <p>QuickPDF is funded by unobtrusive display ads on the landing page (never inside the tool workspace). We commit to keeping every current tool free with no watermarks, no signup, and no artificial limits.</p>
+</article></div></main>
+<footer class="site-footer"><div class="container"><div class="footer-bottom"><div>© <span data-year></span> QuickPDF</div><div><a href="../">Home</a></div></div></div></footer>
+<script src="../assets/common.js"></script>

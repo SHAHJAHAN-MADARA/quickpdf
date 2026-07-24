@@ -1,0 +1,175 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Split PDF Online — Extract Pages Free | QuickPDF</title>
+<meta name="description" content="Split a PDF into separate files or extract specific pages. Free online PDF splitter — runs in your browser, no upload, no signup.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta name="keywords" content="split pdf, extract pdf pages, pdf splitter, separate pdf pages">
+<link rel="canonical" href="https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/split.html">
+<meta name="theme-color" content="#0b0d12">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Split PDF","url":"https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/split.html","applicationCategory":"UtilitiesApplication","offers":{"@type":"Offer","price":"0"}}</script>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="logo" href="../"><span class="logo-mark">Q</span><span>QuickPDF</span></a>
+    <nav class="nav-links">
+      <a href="../tools/merge.html">Merge</a><a href="../tools/split.html">Split</a><a href="../tools/compress.html">Compress</a>
+      <a href="../tools/pdf-to-jpg.html">PDF to JPG</a><a href="../tools/jpg-to-pdf.html">JPG to PDF</a><a href="../tools/rotate.html">Rotate</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main class="tool-page">
+  <div class="container">
+    <div class="tool-head">
+      <h1>Split PDF</h1>
+      <p>Extract specific pages or split a PDF into separate files. Runs entirely in your browser.</p>
+    </div>
+
+    <div class="workspace">
+      <div id="dz" class="dropzone" role="button" tabindex="0">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v14m-5-5 5 5 5-5M5 21h14"/></svg>
+        <p class="dz-title">Drop a PDF here or click to select</p>
+        <p class="dz-sub">Choose the pages you want to extract</p>
+      </div>
+
+      <div id="opts" class="hide" style="margin-top:24px">
+        <p id="fileInfo" style="color:var(--text-dim);font-size:14px;margin:0 0 16px"></p>
+
+        <label class="field">
+          <span class="lbl">Mode</span>
+          <select class="input" id="mode">
+            <option value="range">Extract pages (custom range)</option>
+            <option value="all">Split into one PDF per page</option>
+          </select>
+        </label>
+
+        <label class="field" id="rangeField">
+          <span class="lbl">Pages to extract (e.g. <code>1-3, 5, 7-9</code>)</span>
+          <input class="input" id="rangeInput" type="text" placeholder="1-3, 5, 7-9">
+        </label>
+
+        <div class="actions">
+          <button class="btn btn-outline" id="clearBtn">Choose different file</button>
+          <button class="btn btn-primary grow" id="doBtn">✂️ Split & Download</button>
+        </div>
+
+        <div class="progress hide" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="status" id="status"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="container"><div class="footer-bottom"><div>© <span data-year></span> QuickPDF</div><div><a href="../legal/privacy.html">Privacy</a> · <a href="../">Home</a></div></div></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  var file = null, pageCount = 0;
+  var dz = document.getElementById('dz');
+  var opts = document.getElementById('opts');
+  var info = document.getElementById('fileInfo');
+  var mode = document.getElementById('mode');
+  var rangeField = document.getElementById('rangeField');
+  var rangeInput = document.getElementById('rangeInput');
+  var doBtn = document.getElementById('doBtn');
+  var clearBtn = document.getElementById('clearBtn');
+  var progressWrap = document.getElementById('progressWrap');
+  var progressBar = document.getElementById('progressBar');
+  var statusEl = document.getElementById('status');
+
+  QP.dropzone(dz, {
+    accept: '.pdf,application/pdf', multiple: false,
+    onFiles: async function (fs) {
+      file = fs[0];
+      try {
+        var buf = await file.arrayBuffer();
+        var doc = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
+        pageCount = doc.getPageCount();
+        info.innerHTML = '<strong>' + file.name + '</strong> — ' + pageCount + ' pages · ' + QP.fmtBytes(file.size);
+        rangeInput.placeholder = '1-' + Math.min(3, pageCount) + ', ' + Math.min(5, pageCount);
+        opts.classList.remove('hide');
+        dz.classList.add('hide');
+      } catch (e) {
+        QP.toast('Could not read PDF', true);
+      }
+    }
+  });
+
+  mode.addEventListener('change', function () {
+    rangeField.style.display = mode.value === 'range' ? 'block' : 'none';
+  });
+
+  clearBtn.addEventListener('click', function () {
+    file = null; pageCount = 0;
+    dz.classList.remove('hide'); opts.classList.add('hide');
+    statusEl.textContent = ''; rangeInput.value = '';
+  });
+
+  function parseRange(s, max) {
+    var out = [];
+    s.split(',').forEach(function (part) {
+      part = part.trim(); if (!part) return;
+      var m = part.match(/^(\d+)\s*-\s*(\d+)$/);
+      if (m) {
+        var a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+        for (var i = Math.min(a, b); i <= Math.max(a, b); i++) if (i >= 1 && i <= max) out.push(i - 1);
+      } else if (/^\d+$/.test(part)) {
+        var n = parseInt(part, 10); if (n >= 1 && n <= max) out.push(n - 1);
+      }
+    });
+    return Array.from(new Set(out)).sort(function (a, b) { return a - b; });
+  }
+
+  doBtn.addEventListener('click', async function () {
+    if (!file) return;
+    doBtn.disabled = true; clearBtn.disabled = true;
+    progressWrap.classList.remove('hide'); progressBar.style.width = '10%';
+    statusEl.textContent = 'Reading PDF...';
+    try {
+      var buf = await file.arrayBuffer();
+      var src = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
+      progressBar.style.width = '35%';
+
+      if (mode.value === 'range') {
+        var indices = parseRange(rangeInput.value || '', pageCount);
+        if (!indices.length) { QP.toast('Enter a valid page range', true); doBtn.disabled = false; clearBtn.disabled = false; return; }
+        var out = await PDFLib.PDFDocument.create();
+        var pages = await out.copyPages(src, indices);
+        pages.forEach(function (p) { out.addPage(p); });
+        var bytes = await out.save();
+        progressBar.style.width = '100%';
+        QP.download(new Blob([bytes], { type: 'application/pdf' }), file.name.replace(/\.pdf$/i, '') + '-extracted.pdf');
+        statusEl.textContent = 'Extracted ' + indices.length + ' page(s).';
+      } else {
+        // One PDF per page → zip
+        var base = file.name.replace(/\.pdf$/i, '');
+        for (var i = 0; i < pageCount; i++) {
+          var out = await PDFLib.PDFDocument.create();
+          var [p] = await out.copyPages(src, [i]);
+          out.addPage(p);
+          var bytes = await out.save();
+          QP.download(new Blob([bytes], { type: 'application/pdf' }), base + '-page-' + (i + 1) + '.pdf');
+          progressBar.style.width = (35 + (i + 1) / pageCount * 60) + '%';
+          statusEl.textContent = 'Saved page ' + (i + 1) + ' of ' + pageCount;
+          await new Promise(function (r) { setTimeout(r, 40); });
+        }
+        progressBar.style.width = '100%';
+        statusEl.textContent = 'Split into ' + pageCount + ' separate PDFs.';
+      }
+      QP.toast('Done');
+    } catch (err) {
+      console.error(err); QP.toast('Split failed', true);
+      statusEl.textContent = 'Error: ' + (err.message || 'Could not split.');
+    } finally {
+      doBtn.disabled = false; clearBtn.disabled = false;
+      setTimeout(function () { progressWrap.classList.add('hide'); progressBar.style.width = '0'; }, 1500);
+    }
+  });
+})();
+</script>

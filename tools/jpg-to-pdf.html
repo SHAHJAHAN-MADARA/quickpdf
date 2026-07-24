@@ -1,0 +1,184 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JPG to PDF — Convert Images to PDF Free | QuickPDF</title>
+<meta name="description" content="Convert JPG, PNG, or WebP images into a single PDF file. Drag to reorder, adjust page size — free, private, browser-only.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta name="keywords" content="jpg to pdf, image to pdf, png to pdf, convert images to pdf">
+<link rel="canonical" href="https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/jpg-to-pdf.html">
+<meta name="theme-color" content="#0b0d12">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JPG to PDF Converter","url":"https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/jpg-to-pdf.html","applicationCategory":"UtilitiesApplication","offers":{"@type":"Offer","price":"0"}}</script>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="logo" href="../"><span class="logo-mark">Q</span><span>QuickPDF</span></a>
+    <nav class="nav-links">
+      <a href="../tools/merge.html">Merge</a><a href="../tools/split.html">Split</a><a href="../tools/compress.html">Compress</a>
+      <a href="../tools/pdf-to-jpg.html">PDF to JPG</a><a href="../tools/jpg-to-pdf.html">JPG to PDF</a><a href="../tools/rotate.html">Rotate</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main class="tool-page">
+  <div class="container">
+    <div class="tool-head">
+      <h1>JPG to PDF</h1>
+      <p>Convert images into a single PDF. Supports JPG, PNG, and WebP. Drag files to reorder.</p>
+    </div>
+
+    <div class="workspace">
+      <div id="dz" class="dropzone"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v14m-5-5 5 5 5-5M5 21h14"/></svg>
+        <p class="dz-title">Drop images here or click to select</p>
+        <p class="dz-sub">JPG · PNG · WebP</p>
+      </div>
+      <ul id="fileList" class="file-list"></ul>
+
+      <div id="opts" class="hide" style="margin-top:20px">
+        <label class="field">
+          <span class="lbl">Page size</span>
+          <select class="input" id="size">
+            <option value="fit">Fit to image (each page = image size)</option>
+            <option value="a4p">A4 Portrait</option>
+            <option value="a4l">A4 Landscape</option>
+            <option value="letterp">US Letter Portrait</option>
+            <option value="letterl">US Letter Landscape</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="lbl">Margin (mm)</span>
+          <input class="input" type="number" id="margin" value="0" min="0" max="50">
+        </label>
+        <div class="actions">
+          <button class="btn btn-outline" id="clearBtn">Clear</button>
+          <button class="btn btn-primary grow" id="doBtn">📄 Convert & Download</button>
+        </div>
+      </div>
+
+      <div class="progress hide" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="container"><div class="footer-bottom"><div>© <span data-year></span> QuickPDF</div><div><a href="../">Home</a></div></div></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  var images = [];
+  var dz = document.getElementById('dz'), listEl = document.getElementById('fileList');
+  var opts = document.getElementById('opts'), doBtn = document.getElementById('doBtn');
+  var clearBtn = document.getElementById('clearBtn'), sizeSel = document.getElementById('size');
+  var marginI = document.getElementById('margin'), progressWrap = document.getElementById('progressWrap');
+  var progressBar = document.getElementById('progressBar'), statusEl = document.getElementById('status');
+
+  QP.dropzone(dz, {
+    accept: 'image/*', multiple: true,
+    onFiles: function (fs) {
+      fs.forEach(function (f) { if (/^image\//.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name)) images.push(f); });
+      render();
+    }
+  });
+
+  function render() {
+    listEl.innerHTML = '';
+    if (!images.length) { opts.classList.add('hide'); return; }
+    opts.classList.remove('hide');
+    images.forEach(function (f, i) {
+      var li = document.createElement('li');
+      li.className = 'file-item'; li.draggable = true;
+      li.innerHTML = '<span class="fi-drag">⋮⋮</span><span class="fi-icon">🖼️</span><div class="fi-info"><div class="fi-name"></div><div class="fi-size">' + QP.fmtBytes(f.size) + '</div></div><button class="fi-remove">✕</button>';
+      li.querySelector('.fi-name').textContent = f.name;
+      li.querySelector('.fi-remove').addEventListener('click', function () { images.splice(i, 1); render(); });
+      li.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/plain', String(i)); li.classList.add('dragging'); });
+      li.addEventListener('dragover', function (e) { e.preventDefault(); });
+      li.addEventListener('drop', function (e) {
+        e.preventDefault();
+        var from = +e.dataTransfer.getData('text/plain');
+        if (from === i) return;
+        var m = images.splice(from, 1)[0]; images.splice(i, 0, m); render();
+      });
+      listEl.appendChild(li);
+    });
+  }
+
+  clearBtn.addEventListener('click', function () { images = []; render(); });
+
+  var SIZES = {
+    a4p: [595.28, 841.89], a4l: [841.89, 595.28],
+    letterp: [612, 792], letterl: [792, 612]
+  };
+
+  async function toPng(file) {
+    // Convert any image (webp, png, jpeg) to PNG bytes via canvas — pdf-lib embeds PNG/JPG
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        c.toBlob(function (b) {
+          URL.revokeObjectURL(url);
+          if (!b) return reject(new Error('canvas toBlob failed'));
+          b.arrayBuffer().then(function (buf) { resolve({ buf: buf, w: img.naturalWidth, h: img.naturalHeight, type: 'png' }); });
+        }, 'image/png');
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Could not load ' + file.name)); };
+      img.src = url;
+    });
+  }
+
+  doBtn.addEventListener('click', async function () {
+    if (!images.length) return;
+    doBtn.disabled = true;
+    progressWrap.classList.remove('hide'); progressBar.style.width = '5%';
+    statusEl.textContent = 'Preparing images...';
+    try {
+      var pdf = await PDFLib.PDFDocument.create();
+      var margin = (parseFloat(marginI.value) || 0) * 2.83465; // mm → pt
+      for (var i = 0; i < images.length; i++) {
+        var f = images[i];
+        var data;
+        if (/jpe?g$/i.test(f.name) || f.type === 'image/jpeg') {
+          var buf = await f.arrayBuffer();
+          var jpg = await pdf.embedJpg(buf);
+          data = { image: jpg, w: jpg.width, h: jpg.height };
+        } else {
+          var conv = await toPng(f);
+          var png = await pdf.embedPng(conv.buf);
+          data = { image: png, w: png.width, h: png.height };
+        }
+
+        var pw, ph;
+        if (sizeSel.value === 'fit') {
+          pw = data.w + margin * 2; ph = data.h + margin * 2;
+        } else {
+          var s = SIZES[sizeSel.value]; pw = s[0]; ph = s[1];
+        }
+        var page = pdf.addPage([pw, ph]);
+        var availW = pw - margin * 2, availH = ph - margin * 2;
+        var scale = Math.min(availW / data.w, availH / data.h);
+        var dw = data.w * scale, dh = data.h * scale;
+        page.drawImage(data.image, { x: (pw - dw) / 2, y: (ph - dh) / 2, width: dw, height: dh });
+        progressBar.style.width = (10 + (i + 1) / images.length * 80) + '%';
+        statusEl.textContent = 'Added image ' + (i + 1) + ' / ' + images.length;
+      }
+      var bytes = await pdf.save();
+      progressBar.style.width = '100%';
+      QP.download(new Blob([bytes], { type: 'application/pdf' }), 'quickpdf-images.pdf');
+      statusEl.textContent = 'Done.'; QP.toast('PDF created');
+    } catch (err) {
+      console.error(err); QP.toast('Conversion failed', true);
+      statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+      doBtn.disabled = false;
+      setTimeout(function () { progressWrap.classList.add('hide'); progressBar.style.width = '0'; }, 1200);
+    }
+  });
+})();
+</script>

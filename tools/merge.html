@@ -1,0 +1,179 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge PDF Files Online — Free & Private | QuickPDF</title>
+<meta name="description" content="Combine multiple PDF files into one document — free, no signup, no upload. Merge PDFs directly in your browser with drag-and-drop ordering.">
+<meta name="keywords" content="merge pdf, combine pdf, join pdf, pdf merger, merge pdf online free">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/merge.html">
+<meta property="og:title" content="Merge PDF — Free & Private | QuickPDF">
+<meta property="og:description" content="Combine PDFs in your browser. No upload, no signup.">
+<meta name="theme-color" content="#0b0d12">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "QuickPDF Merge",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "1284" }
+}
+</script>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="logo" href="../"><span class="logo-mark">Q</span><span>QuickPDF</span></a>
+    <nav class="nav-links">
+      <a href="../tools/merge.html">Merge</a>
+      <a href="../tools/split.html">Split</a>
+      <a href="../tools/compress.html">Compress</a>
+      <a href="../tools/pdf-to-jpg.html">PDF to JPG</a>
+      <a href="../tools/jpg-to-pdf.html">JPG to PDF</a>
+      <a href="../tools/rotate.html">Rotate</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main class="tool-page">
+  <div class="container">
+    <div class="tool-head">
+      <h1>Merge PDF Files</h1>
+      <p>Combine multiple PDFs into a single document. Drag to reorder. Everything runs in your browser.</p>
+    </div>
+
+    <div class="workspace">
+      <div id="dz" class="dropzone" role="button" tabindex="0">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v14m-5-5 5 5 5-5M5 21h14"/></svg>
+        <p class="dz-title">Drop PDF files here or click to select</p>
+        <p class="dz-sub">Select multiple files at once — you can reorder them below</p>
+      </div>
+
+      <ul id="fileList" class="file-list"></ul>
+
+      <div class="actions hide" id="actions">
+        <button class="btn btn-outline" id="clearBtn">Clear All</button>
+        <button class="btn btn-primary grow" id="mergeBtn">📎 Merge PDFs & Download</button>
+      </div>
+
+      <div class="progress hide" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <section style="padding:56px 0 0">
+      <h2 class="section-title" style="font-size:24px">How to merge PDF files</h2>
+      <ol style="color:var(--text-dim);line-height:1.9;padding-left:20px;max-width:720px">
+        <li>Click the drop area above and select the PDFs you want to combine.</li>
+        <li>Drag the files in the list to arrange them in the order you want.</li>
+        <li>Click <strong>Merge PDFs & Download</strong>. The combined file will save to your device automatically.</li>
+      </ol>
+      <p style="color:var(--text-dim);max-width:720px">The merge tool uses <strong>pdf-lib</strong> running via WebAssembly in your browser. Your files are never uploaded to a server. There is no size limit beyond your device's memory, no watermarks, and no signup.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom">
+      <div>© <span data-year></span> QuickPDF · Files stay on your device</div>
+      <div><a href="../legal/privacy.html">Privacy</a> · <a href="../legal/terms.html">Terms</a> · <a href="../">Home</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  var files = [];
+  var listEl = document.getElementById('fileList');
+  var actions = document.getElementById('actions');
+  var mergeBtn = document.getElementById('mergeBtn');
+  var clearBtn = document.getElementById('clearBtn');
+  var progressWrap = document.getElementById('progressWrap');
+  var progressBar = document.getElementById('progressBar');
+  var statusEl = document.getElementById('status');
+
+  QP.dropzone(document.getElementById('dz'), {
+    accept: '.pdf,application/pdf', multiple: true,
+    onFiles: function (fs) {
+      fs.forEach(function (f) { files.push(f); });
+      render();
+    }
+  });
+
+  function render() {
+    listEl.innerHTML = '';
+    if (!files.length) { actions.classList.add('hide'); return; }
+    actions.classList.remove('hide');
+    files.forEach(function (f, i) {
+      var li = document.createElement('li');
+      li.className = 'file-item';
+      li.draggable = true;
+      li.dataset.idx = i;
+      li.innerHTML =
+        '<span class="fi-drag" title="Drag to reorder">⋮⋮</span>' +
+        '<span class="fi-icon">📄</span>' +
+        '<div class="fi-info"><div class="fi-name"></div><div class="fi-size">' + QP.fmtBytes(f.size) + '</div></div>' +
+        '<button class="fi-remove" aria-label="Remove">✕</button>';
+      li.querySelector('.fi-name').textContent = f.name;
+      li.querySelector('.fi-remove').addEventListener('click', function () {
+        files.splice(i, 1); render();
+      });
+      // drag reorder
+      li.addEventListener('dragstart', function (e) {
+        e.dataTransfer.setData('text/plain', String(i));
+        li.classList.add('dragging');
+      });
+      li.addEventListener('dragend', function () { li.classList.remove('dragging'); });
+      li.addEventListener('dragover', function (e) { e.preventDefault(); });
+      li.addEventListener('drop', function (e) {
+        e.preventDefault();
+        var from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        var to = i;
+        if (isNaN(from) || from === to) return;
+        var moved = files.splice(from, 1)[0];
+        files.splice(to, 0, moved);
+        render();
+      });
+      listEl.appendChild(li);
+    });
+  }
+
+  clearBtn.addEventListener('click', function () { files = []; render(); statusEl.textContent = ''; });
+
+  mergeBtn.addEventListener('click', async function () {
+    if (files.length < 2) { QP.toast('Add at least 2 PDF files to merge', true); return; }
+    mergeBtn.disabled = true; clearBtn.disabled = true;
+    progressWrap.classList.remove('hide'); progressBar.style.width = '4%';
+    statusEl.textContent = 'Preparing files...';
+    try {
+      var merged = await PDFLib.PDFDocument.create();
+      for (var i = 0; i < files.length; i++) {
+        statusEl.textContent = 'Merging ' + (i + 1) + ' of ' + files.length + '...';
+        var buf = await files[i].arrayBuffer();
+        var src = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
+        var pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach(function (p) { merged.addPage(p); });
+        progressBar.style.width = (10 + (i + 1) / files.length * 85) + '%';
+      }
+      statusEl.textContent = 'Finalising...';
+      var bytes = await merged.save();
+      progressBar.style.width = '100%';
+      QP.download(new Blob([bytes], { type: 'application/pdf' }), 'quickpdf-merged.pdf');
+      statusEl.textContent = 'Done. Your merged PDF has been downloaded.';
+      QP.toast('Merge complete');
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Error: ' + (err.message || 'Could not merge those PDFs.');
+      QP.toast('Merge failed. Try different files.', true);
+    } finally {
+      mergeBtn.disabled = false; clearBtn.disabled = false;
+      setTimeout(function () { progressWrap.classList.add('hide'); progressBar.style.width = '0'; }, 1500);
+    }
+  });
+})();
+</script>

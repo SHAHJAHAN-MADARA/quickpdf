@@ -1,0 +1,12 @@
+{
+  "name": "QuickPDF — Free Online PDF Tools",
+  "short_name": "QuickPDF",
+  "description": "Merge, split, compress, and convert PDFs in your browser.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0d12",
+  "theme_color": "#ef4444",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

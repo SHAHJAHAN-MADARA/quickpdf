@@ -1,0 +1,131 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF to JPG — Convert PDF Pages to Images Free | QuickPDF</title>
+<meta name="description" content="Convert each page of your PDF to high-quality JPG images. Free browser-based tool. No upload, no signup.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta name="keywords" content="pdf to jpg, pdf to image, convert pdf to jpg online">
+<link rel="canonical" href="https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/pdf-to-jpg.html">
+<meta name="theme-color" content="#0b0d12">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PDF to JPG Converter","url":"https://SHAHJAHAN-MADARA.github.io/quickpdf/tools/pdf-to-jpg.html","applicationCategory":"UtilitiesApplication","offers":{"@type":"Offer","price":"0"}}</script>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="logo" href="../"><span class="logo-mark">Q</span><span>QuickPDF</span></a>
+    <nav class="nav-links">
+      <a href="../tools/merge.html">Merge</a><a href="../tools/split.html">Split</a><a href="../tools/compress.html">Compress</a>
+      <a href="../tools/pdf-to-jpg.html">PDF to JPG</a><a href="../tools/jpg-to-pdf.html">JPG to PDF</a><a href="../tools/rotate.html">Rotate</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main class="tool-page">
+  <div class="container">
+    <div class="tool-head">
+      <h1>PDF to JPG</h1>
+      <p>Turn each page of your PDF into a high-resolution JPG. Runs locally — files never leave your device.</p>
+    </div>
+
+    <div class="workspace">
+      <div id="dz" class="dropzone">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v14m-5-5 5 5 5-5M5 21h14"/></svg>
+        <p class="dz-title">Drop a PDF here or click to select</p>
+      </div>
+
+      <div id="opts" class="hide" style="margin-top:20px">
+        <p id="fileInfo" style="color:var(--text-dim);margin:0 0 16px"></p>
+        <label class="field">
+          <span class="lbl">Quality</span>
+          <select class="input" id="quality">
+            <option value="1.5">Standard (1.5×)</option>
+            <option value="2" selected>High (2×)</option>
+            <option value="3">Ultra (3×)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="lbl">JPG quality</span>
+          <input class="input" type="range" id="jpgq" min="60" max="100" value="92">
+          <span id="jpgqLabel" style="color:var(--text-dim);font-size:13px">92%</span>
+        </label>
+        <div class="actions">
+          <button class="btn btn-outline" id="clearBtn">Choose different file</button>
+          <button class="btn btn-primary grow" id="doBtn">🖼️ Convert & Download</button>
+        </div>
+      </div>
+
+      <div class="progress hide" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer"><div class="container"><div class="footer-bottom"><div>© <span data-year></span> QuickPDF</div><div><a href="../">Home</a></div></div></div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  var file = null;
+  var dz = document.getElementById('dz'), opts = document.getElementById('opts');
+  var info = document.getElementById('fileInfo');
+  var doBtn = document.getElementById('doBtn'), clearBtn = document.getElementById('clearBtn');
+  var quality = document.getElementById('quality'), jpgq = document.getElementById('jpgq');
+  var jpgqLabel = document.getElementById('jpgqLabel');
+  var progressWrap = document.getElementById('progressWrap'), progressBar = document.getElementById('progressBar');
+  var statusEl = document.getElementById('status');
+
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  jpgq.addEventListener('input', function () { jpgqLabel.textContent = jpgq.value + '%'; });
+
+  QP.dropzone(dz, {
+    accept: '.pdf,application/pdf', multiple: false,
+    onFiles: function (fs) {
+      file = fs[0];
+      info.innerHTML = '<strong>' + file.name + '</strong> · ' + QP.fmtBytes(file.size);
+      dz.classList.add('hide'); opts.classList.remove('hide');
+    }
+  });
+
+  clearBtn.addEventListener('click', function () { file = null; dz.classList.remove('hide'); opts.classList.add('hide'); statusEl.textContent = ''; });
+
+  doBtn.addEventListener('click', async function () {
+    if (!file) return;
+    doBtn.disabled = true;
+    progressWrap.classList.remove('hide'); progressBar.style.width = '5%';
+    statusEl.textContent = 'Loading PDF...';
+    try {
+      var buf = await file.arrayBuffer();
+      var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      var scale = parseFloat(quality.value);
+      var qval = parseInt(jpgq.value, 10) / 100;
+      var base = file.name.replace(/\.pdf$/i, '');
+      for (var i = 1; i <= pdf.numPages; i++) {
+        statusEl.textContent = 'Rendering page ' + i + ' of ' + pdf.numPages + '...';
+        var page = await pdf.getPage(i);
+        var vp = page.getViewport({ scale: scale });
+        var canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        var blob = await new Promise(function (res) { canvas.toBlob(res, 'image/jpeg', qval); });
+        QP.download(blob, base + '-page-' + i + '.jpg');
+        progressBar.style.width = (10 + i / pdf.numPages * 85) + '%';
+        await new Promise(function (r) { setTimeout(r, 60); });
+      }
+      progressBar.style.width = '100%';
+      statusEl.textContent = 'Saved ' + pdf.numPages + ' JPG image(s).'; QP.toast('Done');
+    } catch (err) {
+      console.error(err); QP.toast('Conversion failed', true);
+      statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+      doBtn.disabled = false;
+      setTimeout(function () { progressWrap.classList.add('hide'); progressBar.style.width = '0'; }, 1500);
+    }
+  });
+})();
+</script>
